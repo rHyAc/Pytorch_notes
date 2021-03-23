@@ -1,0 +1,60 @@
+
+torch.autograd.grad(): return gradients
+	e.g.
+		x = torch.randn(3, 4, requires_grad = True)
+		torch.autograd.grad(x, x, torch.ones_like(x))	
+		''' (tensor([[ 1., 1.,  1.,  1.],
+         			[ 1.,  1.,  1.,  1.],
+         			[ 1.,  1.,  1.,  1.]]),) '''
+		x.grad == None		# True
+
+		
+		y = x ** 2
+		dy = torch.autograd.grad(y, x, torch.ones_like(x), create_graph = True)
+		# backward of backward
+		d2y = torch.autograd.grad(dy, x, torch.ones_like(x))
+
+torch.Tensor.register_hook(): hook tensor's gradients
+	e.g.
+		x = torch.randn(3, 4, requires_grad = True)
+		h = x.register_hook(lambda grad: grad * 2)
+		x.backward(torch.ones_like(x))
+		x.grad
+		''' tensor([[2., 2., 2., 2.],
+        			[2., 2., 2., 2.],
+        			[2., 2., 2., 2.]]) '''
+		h.remove()		# removes the hook
+
+inherit autograd Function
+	e.g.
+		class Mul(Function):
+
+    			@staticmethod
+    			def forward(ctx, w, x, b, x_requires_grad = True):
+        				ctx.x_requires_grad = x_requires_grad
+        				ctx.save_for_backward(w,x)
+        				output = w * x + b
+        				return output
+
+    			@staticmethod
+    			def backward(ctx, grad_output):
+        				w,x = ctx.saved_tensors
+        				grad_w = grad_output * x
+        				if ctx.x_requires_grad:
+            					grad_x = grad_output * w
+        				else:
+            					grad_x = None
+        				grad_b = grad_output * 1
+        				return grad_w, grad_x, grad_b, None
+	
+		x = torch.ones(1)
+		w = torch.randn(1, requires_grad = True)
+		b = torch.randn(1, requires_grad = True)
+
+		# Check gradients computed via small finite differences
+		torch.autograd.gradcheck(Mul.apply, (x, w, b), eps = 1e-4)		# True, 'esp': perturbation for finite differences
+
+		# use apply() to call
+		y = Mul.apply(w, x, b)
+		y.backward()
+

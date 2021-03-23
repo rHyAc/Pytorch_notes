@@ -1,0 +1,185 @@
+
+dataset
+    e.g.
+        from torch.util import data
+        import os
+        from PLT import Image
+        import torchvision.transforms as trans
+        
+        
+        transfms = trans.Compose([trans.Resize(256), trans.CentroCrop(224), 
+                                  trans.ToTensor(), 
+                                  trans.Normalize(mean=[.5, .5, .5], std=[.5, .5, .5])])
+        
+        class ds(data.Dataset):
+            def __init__(self, root):
+                super(ds, self).__init__(self, transfms=None)
+                img_ids = os.listdir(root)
+                self.img_paths = [os.path.join(root, img_id) 
+                                 for img_id in img_ids]
+                self.transfms = transfms
+                
+            # load img
+            def __getitem__(self, index):
+                img = Image.open(self.img_paths[index])
+                label = 1
+                return transfms(img) if transfms else img, label
+            
+            def __len__(self):
+                return len(img_paths)
+                
+                
+                
+        # A generic data loader where the images are arranged in this way:
+            # root/dog/xxx.png
+            # root/dog/xxy.png
+            # root/dog/xxz.png
+
+            # root/cat/123.png
+            # root/cat/nsdf3.png
+            # root/cat/asd932_.png
+            
+        import torchvision.datasets import ImageFolder
+        
+        ds = ImageFolder('root', transfms)
+        
+        # {'cat': 0, 'dog': 1}
+        ds.class_to_idx
+        
+        # folder 0, img 1
+        ds[0][1]
+        
+        # list of pairs(img_path, label)
+        ds.img
+
+        
+
+dataloader
+    e.g.
+        from torch.util.data import DataLoader
+        
+        dataloader = DataLoader(dataset, batch_size=1, shuffle=True, num_workers=4, drop_last=False)
+        dit = iter(dataloader)
+        # batch
+        imgs, labels = next(dit)
+        
+        
+        
+        # DataLoader(...collate_fn...)
+        #    merges a list of samples to form a mini-batch of Tensor
+        
+        from torch.util.data.dataloader import default_collate
+        
+        def my_collate_fn(batch):
+            return default_collate(batch)
+        
+        dl = DataLoader(ds, collate_fn=my_collate_fn)
+        
+        
+        
+        # DataLoader(...sample...)
+        #    strategy to draw samples
+        
+        from torch.util.data.sample import WeightRandomSampler
+        
+        # for each sample in a batch
+        weights = [1, 2, 2]
+        smpler = WeightedRandomSampler(weights, num_samples=dataset.__len__(), 
+                                      replacement=True)
+            # replacemen=True: may draw samples repeatly
+            
+        dataloader = DataLoader(ds, batch_size=1, sampler=smpler)
+        
+
+        
+torchvision
+    
+    models
+        e.g.
+            
+            from torchvison import models
+            from torch import nn
+            
+            res34 = models.resnet34(pretrain=True)
+            fc = res32.fc
+            res32.fc = nn.Linear(fc.in_features, 10)
+            
+    dataset
+        e.g.
+            from torchvision import datasets
+            
+            ds = datasets.ImageNet('./ImageNet', 'train', download=True)
+            
+    transform
+    
+    utils
+        make_grid and save_image
+            e.g.
+                from torchvision.util import make_grid, save_image
+                
+                img_grid = make_grid(img_batch, nrow=4)
+                save_image(img_grid, 'dir')
+        
+
+                
+Visdom
+    e.g.
+        x = torch.arange(-10, 10, .1)
+        y = torch.sin(x)
+        vis = visdom.Visdom(env='test')
+        vis.line(X=x, Y=y, win='tri', opts={'title': 'y=sinx'})
+            # win: pane
+            
+        y = torch.cos(x)
+        # append a new line to pane 'tri', name must be set
+        vis.line(X=x, Y=y, win='tri', name='cos', update='new')
+        
+        # update a point
+        vis.line(X=torch.Tensor([11]), Y=torch.Tensor([2]), win='tri', update='append')
+        
+        
+        
+        vis.images(imgs, nrow=6, win='imgs', opts={'title': '6 x 6'})
+            #imgs: H(can be 0) * C(only 1 and 3) * H * W
+            
+            
+        
+        vis.text('<br>Visdom</br>')
+        
+        
+        
+CUDA
+    e.g.
+        T = torch.Tensor(3, 3)
+        # device = 0
+        T.cuda(0)
+        # False
+        T.is_cuda
+        
+        T = T.cuda()
+        # True
+        T.is_cuda
+        
+        L = nn.Linear(3, 3)
+        L.cuda(0)
+        # True
+        L.weight.is_cuda
+        
+        
+        
+        # set default device to gpu 1
+        with  torch.cuda.device(1):
+            T.cuda()
+        
+        
+        
+        torch.set_default_tensor_type('torch.cuda.FloatTensor')
+        
+        
+
+multigpu
+    e.g.
+        import os
+        # only gpu 1(physical, logical gpu 0) and gpu 3(physical, logical gpu 1) can be visible, 
+        os.environ["CUDA_VISIBLE_DEVICES"] = "1, 3"
+        torch.Tensor(3, 3).cuda(1)

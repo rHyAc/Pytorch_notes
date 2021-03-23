@@ -1,0 +1,135 @@
+
+creation
+	torch.tensor(obj)
+	torch.rand(3, 4, dtype=torch.int)
+	torch.randn_like(obj): get a random tensor with shape as obj
+	torch.zeros_like(obj)
+
+Any operation that mutates a tensor in-place is post-fixed with an _	
+	e.g.	
+		y.add_(x): y = x + y
+		y.copy_(x): y <- x
+
+tensor.item(): get pyphon number for one element torsor
+
+tensor.storage(): Returns the underlying storage
+
+tensor.storage_offset(): Returns tensor’s offset in the underlying storage in terms of number of storage elements
+
+tensor.data_ptr(): Returns the address of the first element of tensor
+
+tensor.stride(): Returns the stride of tensor
+
+tensor.data: renturn
+
+tensor to ndarray: The Torch Tensor and NumPy array will share their underlying memory locations (if the Torch Tensor is on CPU)
+	e.g.
+		a = torch.ones(5)
+		b = a.numpy()		# shallow copy
+
+		a = np.ones(5)
+		b = torch.from_numpy(a)	# shallow copy
+		b = torch.tensor(a)		# deep copy
+		b = torch.Tensor(a)		# deep copy
+
+move between cpu and gpu
+	tensor.to()
+		e.g.
+			if torch.cuda.is_available():
+   				device = torch.device("cuda")         	 # a CUDA device object
+    				y = torch.ones_like(x, device=device)  	 # directly create a tensor on GPU
+    				x = x.to(device)                      		 # or x.to("cuda")
+    				z = x + y
+				# output: tensor([2.7007], device='cuda:0')
+    				print(z)			
+				tensor([2.7007], dtype=torch.float64)
+    				print(z.to("cpu", torch.double))       	# change dtype together!
+	
+norm
+	x.data.norm(p=2)	# L2 norm
+
+autograd
+	If you set its attribute tensor.requires_grad as True, it starts to track all operations on it. 
+		When you finish your computation you can call tensor.backward() and have all the gradients computed automatically. 
+		The gradient for this tensor will be accumulated into tensor.grad attribute	
+
+	Tensor and Function are interconnected and build up an acyclic graph, that encodes a complete history of computation. 
+		Each tensor has a tensor.grad_fn attribute that references a Function that has created the Tensor 
+		(except for Tensors created by the user - their grad_fn is None).
+
+			e.g.
+			x = torch.ones(2, 2, requires_grad=True)		# or torch.ones(2, 2).requires_grad_(True)
+			y = x + 2					# y is tensor([[3., 3.],[3., 3.]], grad_fn=<AddBackward0>)
+			z = y.mean()
+			z.backward()
+	
+			with torch.no_grad():
+				print(x.requires_grad)		# output: False
+
+			y = x.detach()
+			print(y.requires_grad)			# output: False
+
+net param
+	e.g.
+		for name, parameters in net.named_parameters:
+			...
+		
+		len(list(net.named_parameters))
+
+squeeze and unsqueeze
+
+	e.g.
+		a = torch.tensor([[1, 2, 5], [3, 4, 6]])
+		a.unsqueeze(2)	# equal to a.unsqueeze(-1)
+		''' tensor([[[1],
+         			[2],
+         			[5]],
+
+        			[[3],
+         			[4],
+         			[6]]]) '''
+
+		a.unsqueeze(1)	# equal to a.unsqueeze(-2)
+		''' tensor([[[1, 2, 5]],
+
+        			[[3, 4, 6]]]) '''
+
+		a.unsqueeze(0)	# equal to a.unsqueeze(-3)
+		''' tensor([[[1, 2, 5]],
+
+        			[[3, 4, 6]]]) '''
+
+
+	e.g.
+		a = torch.arange(6).reshape(1, 1, 1, 2, 3)
+		# remove all size 1 axis
+		a.squeeze().size()	# torch.Size([2, 3])
+		# remove axis 1 if its size is 1
+		a.squeeze(1).size()	# torch.Size([1, 1, 2, 3])
+
+clear
+	a = torch.arange(5)
+	a.new(2, 3)		# get uninitialized a with the size of (2, 3)
+	a.new_ones(1, 2)
+	a.new_tensor([3, 4])
+	''' tensor([3., 4.]) '''
+
+type_conver
+	a = torch.LongTensor([1, 2])
+	b = torch.FloatTensor([1.1, 1.2])
+	c = a.type_as(b)			# conver long to float
+
+memory
+	torch.Tensor.is_contiguous: Returns True if tensor is contiguous in memory in the order specified by memory format
+	torch.Tensor.contiguous: Returns a contiguous in memory tensor containing the same data as tensor
+
+expand
+	e.g.
+		x = torch.tensor([[1], [2], [3]])
+		x.size()
+		''' torch.Size([3, 1]) '''
+		# without allocating new memory
+		x.expand(3, 4)
+		''' tensor([[ 1,  1,  1,  1],
+        			[ 2,  2,  2,  2],
+        			[ 3,  3,  3,  3]]) '''
